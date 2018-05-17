@@ -52,6 +52,7 @@ function print_graph
 function print_function
 {
 	formula="$1"
+	print_speed="$2"
 	counter=-10
 	y_coords=()
 	max_y=$((-2**31))
@@ -86,6 +87,8 @@ function print_function
 			prop_y_coord="0$prop_y_coord"
 		fi
 		print_at_coord $prop_y_coord $(($counter - 10))
+		#vary speed
+		sleep $(bc -l <<< "$print_speed / 50")
 		((counter = $counter + 1))
 	done
 }
@@ -147,8 +150,10 @@ else
 fi
 
 loader="Graphing..."
-echo "What would you like to graph? Format as awk math"
+echo "What would you like to graph? Format as awk math. ex: cos (0.5 * x)"
 read formula
+echo "What print speed? Enter 1 to 10 (slowest to fastest)"
+read print_speed
 get_current_col
 slow_print "$loader"
 fade_in_out "$loader" $row $col 2
@@ -160,7 +165,7 @@ col=0
 center_x=20
 
 print_graph
-print_function "$formula" 2>/dev/null
+print_function "$formula" "$print_speed" 2>/dev/null
 
 #bring cursor back down
 tput cup $(expr $base_y + 2 \* $HEIGHT + 2) 0
