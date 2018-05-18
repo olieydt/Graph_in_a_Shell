@@ -32,11 +32,11 @@ function print_graph
 {
 	y_counter=20
 	curr_row=$base_y
-	tput cup $curr_row $center_x
-	echo -n "^"
+	tput cup $curr_row $WIDTH
+	echo -n "^ f(x)"
 	while [[ "$y_counter" -ge "0" ]]; do
 		((curr_row = $curr_row + 1))
-		tput cup $curr_row $center_x
+		tput cup $curr_row $WIDTH
 		echo -n "|"
 		((y_counter = $y_counter - 1))
 	done
@@ -46,7 +46,35 @@ function print_graph
 		echo -n "--"
 		((col = $col + 1))
 	done
-	echo -n ">"
+	echo -n "> x"
+}
+
+function add_label
+{
+	max_y="$1"
+	start_row="$2"
+	#print graph axis proportions
+	tput cup $((base_y + 11)) $((2 * $WIDTH + 3))
+	echo -n "1 unit per -"
+	tput cup $start_row $WIDTH
+	y_label=$(bc -l <<< "${max_y#-} / 10")
+	#get first two non zero digits after decimal point
+	length="${#y_label}"
+	counter=0
+	decimal=-1
+	while [[ "$counter" -ne "$length" ]]; do
+		digit=${y_label:$counter:1}
+		((counter = $counter + 1))
+		if [[ "$digit" = "." ]]; then
+			((decimal = $counter + 1))
+		elif [[ "$decimal" -ne "-1" && "$digit" -ne "0" ]]; then
+			break
+		fi
+	done
+	if [[ "$decimal" = "0" || "$counter" = "$length" ]]; then
+		counter=$decimal
+	fi
+	echo -n ${y_label:0:counter} " per |"
 }
 
 function print_function
@@ -73,13 +101,11 @@ function print_function
 	done
 	#check if need to adjust proportion of axis
 	prop=$(bc -l <<< "10 / ${max_y#-}")
-	#echo "${max_y#-} gros"
-	#sleep 1
 	if (( $(echo "$prop < 1" | bc -l) )); then
 		prop="0$prop"
 	fi
-	#echo "$prop gros"
-	#sleep 1
+	#add label to axis and value
+	add_label $max_y $row
 	counter=0
 	while [[ "$counter" -lt "21" ]]; do
 		prop_y_coord=$(bc -l <<< "$prop * ${y_coords[$counter]}")
@@ -159,13 +185,12 @@ echo "What print speed? Enter 1 to 10 (fastest to slowest)"
 read print_speed
 get_current_col
 slow_print "$loader"
-fade_in_out "$loader" $row $col 2
+fade_in_out "$loader" $row $col 1
 echo ""
 
 ((row = $row + 1))
 col=0
 ((base_y = $row + 1))
-center_x=20
 
 print_graph
 print_function "$formula" "$print_speed" 2>/dev/null
