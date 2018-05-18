@@ -55,7 +55,8 @@ function print_function
 	print_speed="$2"
 	counter=-10
 	y_coords=()
-	max_y=$((-2**31))
+	#max_y=$((-2**31))
+	max_y=0
 	#do the math
 	while [[ "$counter" -lt 11 ]]; do
 		#y_coord=$(echo "" | awk -v a="$counter" -v b="$power" 'END {print a ^ b}')
@@ -64,7 +65,7 @@ function print_function
 		#echo $y_coord
 		#sleep 1
 		y_coords+=($y_coord)
-		if [[ "${y_coord#-}" -gt "$max_y" ]]; then
+		if (( $(echo "${y_coord#-} > ${max_y#-}" | bc -l) )); then
 			#set max coord to max y
 			max_y=$y_coord
 		fi
@@ -72,12 +73,14 @@ function print_function
 	done
 	#check if need to adjust proportion of axis
 	prop=$(bc -l <<< "10 / ${max_y#-}")
+	#echo "${max_y#-} gros"
+	#sleep 1
 	if (( $(echo "$prop < 1" | bc -l) )); then
 		prop="0$prop"
 	fi
-	counter=0
-	#echo $prop
+	#echo "$prop gros"
 	#sleep 1
+	counter=0
 	while [[ "$counter" -lt "21" ]]; do
 		prop_y_coord=$(bc -l <<< "$prop * ${y_coords[$counter]}")
 		if (( $(echo "$prop_y_coord < 0" | bc -l) )); then
@@ -87,7 +90,7 @@ function print_function
 			prop_y_coord="0$prop_y_coord"
 		fi
 		print_at_coord $prop_y_coord $(($counter - 10))
-		#vary speed
+		#vary speed of print
 		sleep $(bc -l <<< "$print_speed / 50")
 		((counter = $counter + 1))
 	done
@@ -152,7 +155,7 @@ fi
 loader="Graphing..."
 echo "What would you like to graph? Format as awk math. ex: cos (0.5 * x)"
 read formula
-echo "What print speed? Enter 1 to 10 (slowest to fastest)"
+echo "What print speed? Enter 1 to 10 (fastest to slowest)"
 read print_speed
 get_current_col
 slow_print "$loader"
