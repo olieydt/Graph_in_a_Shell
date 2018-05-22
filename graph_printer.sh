@@ -57,7 +57,7 @@ function add_label
 	max_y="$1"
 	start_row="$2"
 	#print graph axis proportions
-	tput cup $((base_y + SEL_Y_AXIS + 1)) $((2 * $(( 2 * $SEL_X_AXIS )) + 3))
+	tput cup $((base_y + SEL_Y_AXIS + 1)) $((2 * $(( 2 * $SEL_X_AXIS )) + 5))
 	echo -n "1 unit per --"
 	tput cup $start_row $(( 2 * $SEL_X_AXIS ))
 	y_label=$(bc -l <<< "${max_y#-} / $SEL_Y_AXIS")
