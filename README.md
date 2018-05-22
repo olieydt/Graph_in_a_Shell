@@ -5,5 +5,5 @@ The function should use the variable x and the awk formatting. The -c paramater 
 Ex: **graph_printer -x 20 -y 20 -s 5 -c**
 ![Example graph](https://i.imgur.com/vk8iVIZ.png)
 
-View example usage
+View example usage: 
 [Example Usage](https://gfycat.com/MeagerDamagedCob)
