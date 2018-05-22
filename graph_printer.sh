@@ -30,34 +30,37 @@ function get_current_col
 
 function print_graph
 {
-	y_counter=20
+	y_counter=0
+	#as using two '-' to represent 1 unit
+	x_counter=$(( (4 * SEL_X_AXIS) + 1 ))
 	curr_row=$base_y
-	tput cup $curr_row $WIDTH
+	tput cup $curr_row $(( 2 * $SEL_X_AXIS ))
 	echo -n "^ f(x)"
-	while [[ "$y_counter" -ge "0" ]]; do
+	while [[ "$y_counter" -lt "$(( 2 * SEL_Y_AXIS ))" ]]; do
 		((curr_row = $curr_row + 1))
-		tput cup $curr_row $WIDTH
+		tput cup $curr_row $(( 2 * $SEL_X_AXIS ))
 		echo -n "|"
-		((y_counter = $y_counter - 1))
+		((y_counter = $y_counter + 1))
 	done
-	((curr_row = $base_y + 11))
-	while [[ "$col" -lt "40" ]]; do
+	((curr_row = $base_y + SEL_Y_AXIS + 1))
+	while [[ "$col" -lt "$x_counter" ]]; do
 		tput cup $curr_row $col
-		echo -n "--"
+		echo -n "-"
 		((col = $col + 1))
 	done
 	echo -n "> x"
 }
+
 
 function add_label
 {
 	max_y="$1"
 	start_row="$2"
 	#print graph axis proportions
-	tput cup $((base_y + 11)) $((2 * $WIDTH + 3))
-	echo -n "1 unit per -"
-	tput cup $start_row $WIDTH
-	y_label=$(bc -l <<< "${max_y#-} / 10")
+	tput cup $((base_y + SEL_Y_AXIS + 1)) $((2 * $(( 2 * $SEL_X_AXIS )) + 3))
+	echo -n "1 unit per --"
+	tput cup $start_row $(( 2 * $SEL_X_AXIS ))
+	y_label=$(bc -l <<< "${max_y#-} / $SEL_Y_AXIS")
 	#get first two non zero digits after decimal point
 	length="${#y_label}"
 	counter=0
@@ -81,12 +84,12 @@ function print_function
 {
 	formula="$1"
 	print_speed="$2"
-	counter=-10
+	counter=-$SEL_X_AXIS
 	y_coords=()
 	#max_y=$((-2**31))
 	max_y=0
 	#do the math
-	while [[ "$counter" -lt 11 ]]; do
+	while [[ "$counter" -lt $(( SEL_X_AXIS + 1 )) ]]; do
 		#y_coord=$(echo "" | awk -v a="$counter" -v b="$power" 'END {print a ^ b}')
 		formula_sub="${formula//x/($counter)}"
 		y_coord=$(echo "" | awk 'END {print '"$formula_sub"' }')
@@ -100,14 +103,14 @@ function print_function
 		((counter = $counter + 1))
 	done
 	#check if need to adjust proportion of axis
-	prop=$(bc -l <<< "10 / ${max_y#-}")
+	prop=$(bc -l <<< "$SEL_Y_AXIS / ${max_y#-}")
 	if (( $(echo "$prop < 1" | bc -l) )); then
 		prop="0$prop"
 	fi
 	#add label to axis and value
 	add_label $max_y $row
 	counter=0
-	while [[ "$counter" -lt "21" ]]; do
+	while [[ "$counter" -lt "$(( (2 * SEL_X_AXIS) + 1 ))" ]]; do
 		prop_y_coord=$(bc -l <<< "$prop * ${y_coords[$counter]}")
 		if (( $(echo "$prop_y_coord < 0" | bc -l) )); then
 			prop_y_coord="$prop_y_coord"
@@ -115,7 +118,7 @@ function print_function
 		elif (( $(echo "$prop_y_coord < 1" | bc -l) )); then
 			prop_y_coord="0$prop_y_coord"
 		fi
-		print_at_coord $prop_y_coord $(($counter - 10))
+		print_at_coord $prop_y_coord $((counter - SEL_X_AXIS))
 		#vary speed of print
 		sleep $(bc -l <<< "$print_speed / 50")
 		((counter = $counter + 1))
@@ -155,34 +158,68 @@ function fade_in_out
 	done
 }
 
-WIDTH=20
-HEIGHT=10
-
 function print_at_coord
 {
 	curr_y_coord=${1%.*}
+	#echo $curr_y_coord
 	curr_x_coord=${2%.*}
-	((y_coord = $base_y + (2 * $HEIGHT) - 9 - $curr_y_coord))
-	((x_coord = $WIDTH + 2 \* $curr_x_coord))
-	if [[ "${curr_y_coord#-}" -le "10" && "${curr_x_coord#-}" -le "10" ]]; then
+	y_coord=$((base_y + (2 * SEL_Y_AXIS) - (SEL_Y_AXIS - 1) - curr_y_coord))
+	#echo $y_coord
+	#sleep 5
+	x_coord=$(((2 * SEL_X_AXIS) + 2 * curr_x_coord))
+	if [[ "${curr_y_coord#-}" -le "$SEL_Y_AXIS" && "${curr_x_coord#-}" -le "$SEL_X_AXIS" ]]; then
 		tput cup $y_coord $x_coord
 		echo -n "x"
 	fi
 }
 
-echo "Ok to clear terminal? Enter y/n:"
-read ok
-if [[ "$ok" = "y" ]]; then
+#start parsing arguments
+SEL_Y_AXIS=10
+SEL_X_AXIS=10
+counter=1
+re='^[0-9]+$'
+cleared_screen=0
+while [[ -n ${!counter} ]]; do
+	flag=${!counter}
+	((counter = $counter + 1))
+	argument=${!counter}
+	if [[ "$flag" = "-x" && "$argument" =~ $re ]]; then
+		SEL_X_AXIS=$argument
+	elif [[ "$flag" = "-y" && "$argument" =~ $re ]]; then
+		SEL_Y_AXIS=$argument
+	elif [[ "$flag" = "-s" && "$argument" =~ $re ]]; then
+		print_speed=$argument
+	elif [[ "$flag" = "-c" ]]; then
+		cleared_screen=1
+	elif [[ "$flag" = "-h" ]]; then
+		echo "Usage: -x pos x axis length -y pos y axis length \n -c clear terminal window (should be used to help formatting) -s print speed (1 to 10, fastest to slowest) -h help"
+		exit
+	else
+		echo "Use -h for help"
+		exit
+	fi
+	((counter = $counter + 1))
+done
+
+#if [[ "$2" -gt "5" && "$1" -gt "5" ]]; then
+#		SEL_X_AXIS="$1"
+#		SEL_Y_AXIS="$2"
+#fi
+
+#echo "ok to clear terminal? Enter y/n:"
+#read ok
+#if [[ "$ok" = "y" ]]; then
+if (( $cleared_screen )); then
 	clear
 else
-	echo "Formatting of graph will suffer [8==D]"
+	echo "Should use -c to clear terminal, otherwise formatting of graph will suffer [8==D]"
 fi
 
 loader="Graphing..."
 echo "What would you like to graph? Format as awk math. ex: cos (0.5 * x)"
 read formula
-echo "What print speed? Enter 1 to 10 (fastest to slowest)"
-read print_speed
+#echo "What print speed? Enter 1 to 10 (fastest to slowest)"
+#read print_speed
 get_current_col
 slow_print "$loader"
 fade_in_out "$loader" $row $col 1
@@ -193,7 +230,7 @@ col=0
 ((base_y = $row + 1))
 
 print_graph
-print_function "$formula" "$print_speed" 2>/dev/null
+print_function "$formula" "$print_speed" #2>/dev/null
 
 #bring cursor back down
-tput cup $(expr $base_y + 2 \* $HEIGHT + 2) 0
+tput cup $(expr $base_y + 2 \* $SEL_Y_AXIS + 2) 0
