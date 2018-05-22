@@ -192,14 +192,22 @@ while [[ -n ${!counter} ]]; do
 	elif [[ "$flag" = "-c" ]]; then
 		cleared_screen=1
 	elif [[ "$flag" = "-h" ]]; then
-		echo "Usage: -x pos x axis length -y pos y axis length \n -c clear terminal window (should be used to help formatting) -s print speed (1 to 10, fastest to slowest) -h help"
+		echo -e "Usage: \t -x for x axis length \n\t -y for y axis length \n\t -c clear terminal window (should be used to help formatting)\n\t -s print speed (1 to 10, fastest to slowest)\n\t -h help"
 		exit
 	else
 		echo "Use -h for help"
 		exit
 	fi
-	((counter = $counter + 1))
+	if [[ "$argument" =~ $re ]]; then
+		((counter = $counter + 1))
+	fi
 done
+
+#check that not empty
+if (( ! $((counter - 1)) )); then
+	echo "Use -h for help"
+	exit
+fi
 
 #if [[ "$2" -gt "5" && "$1" -gt "5" ]]; then
 #		SEL_X_AXIS="$1"
